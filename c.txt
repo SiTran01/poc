@@ -1,0 +1,83 @@
+#include "system_manager.h"
+#include "blind_led.h"
+#include "mcal_systick.h"
+#include "ecu_pedal.h"
+#include "ecu_servo.h"
+
+#define ADC_FILTER_SIZE  8
+
+uint16_t Filter_ADC(uint16_t new_sample)
+{
+    static uint16_t buffer[ADC_FILTER_SIZE];
+    static uint32_t sum = 0;
+    static uint8_t index = 0;
+
+    sum -= buffer[index];
+    buffer[index] = new_sample;
+    sum += new_sample;
+
+    index++;
+    if(index >= ADC_FILTER_SIZE) index = 0;
+
+    return (uint16_t)(sum / ADC_FILTER_SIZE);
+}
+
+uint8_t Pedal_To_Angle(uint16_t adc_percent)
+{
+    if(adc_percent > 100) adc_percent = 100;
+    return (uint8_t)((adc_percent * 180UL) / 100UL);
+}
+
+#define SERVO_DEAD_ZONE  2
+
+void Servo_Write_With_Deadzone(Servo_Handle_t *hServo, uint8_t angle)
+{
+    static uint8_t last_angle = 0;
+
+    if( (angle > last_angle + SERVO_DEAD_ZONE) ||
+        (angle + SERVO_DEAD_ZONE < last_angle) )
+    {
+        ECU_Servo_WriteAngle(hServo, angle);
+        last_angle = angle;
+    }
+}
+
+uint16_t adc_value;
+uint8_t servo_angle;
+
+
+int main(){
+	System_Init();
+	LED_Handle_t led12, led13, led14;
+	
+	led12.pGPIOx = GPIOD;
+	led12.GPIO_PinNumber = 12;
+	led13.pGPIOx = GPIOD;
+	led13.GPIO_PinNumber = 13;
+	led14.pGPIOx = GPIOD;
+	led14.GPIO_PinNumber = 14;
+	ECU_LED_Init(&led12);
+	ECU_LED_Init(&led13);
+	ECU_LED_Init(&led14);
+	
+	Pedal_Handle_t hGa;
+	ECU_Pedal_Init(&hGa, ADC1, 1, GPIOA, 1);
+	Servo_Handle_t servo0;
+	ECU_Servo_Init(&servo0, TIM4, 1, GPIOD, 12, 2);
+	
+	while(1)
+{
+    uint16_t adc_raw;
+    uint16_t adc_flt;
+
+    adc_raw = ECU_Pedal_GetPosition(&hGa); // 0–100
+    adc_flt = Filter_ADC(adc_raw);
+
+    servo_angle = Pedal_To_Angle(adc_flt);
+
+    Servo_Write_With_Deadzone(&servo0, servo_angle);
+
+    MCAL_Delay_ms(20);   // 50Hz – dúng servo
+}
+	
+}

@@ -1,0 +1,34 @@
+# Build output
+Listings/
+Objects/
+*.d
+*.axf
+*.htm
+*.lnp
+*.sct
+*.dep
+*.build_log.htm
+
+# IDE files
+*.uvguix.quocs
+*.uvoptx
+*.uvprojx
+
+# Debug config
+DebugConfig/
+
+# RTE generated files
+RTE/
+
+# Device specific files
+Device/
+
+# Backup and temporary files
+*~
+*.bak
+*.tmp
+*.swp
+
+# System files
+Thumbs.db
+.DS_Store
