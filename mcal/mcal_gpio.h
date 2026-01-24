@@ -4,26 +4,52 @@
 #include "stm32f407_base.h"
 
 // set-reset
-#define GPIO_PIN_SET 						1U
-#define GPIO_PIN_RESET 					0U
+//typedef enum{
+//	GPIO_PIN_SET = 1U,
+//	GPIO_PIN_RESET = 0U
+//}GPIO_PinState_t;
+#define GPIO_PIN_SET						1U
+#define GPIO_PIN_RESET					0U
 
 // GPIO_MODER
+//typedef enum{
+//	GPIO_MODE_INPUT = 				0U,
+//	GPIO_MODE_OUTPUT = 				1U,
+//	GPIO_MODE_ALTFN = 				2U,
+//	GPIO_MODE_ANALOG = 				3U,
+//}GPIO_PinMode_t;
+
 #define GPIO_MODE_INPUT 				0U
 #define GPIO_MODE_OUTPUT 				1U
 #define GPIO_MODE_ALTFN					2U
 #define GPIO_MODE_ANALOG				3U
 
 //GPIO_SPEED
+//typedef enum{
+//	GPIO_SPEED_LOW = 					0U,
+//	GPIO_SPEED_MEDIUM = 			1U,
+//	GPIO_SPEED_HIGH = 				2U,
+//	GPIO_SPEED_VERY_HIGH = 		3U,
+//}GPIO_PinSpeed;
 #define GPIO_SPEED_LOW					0U
 #define GPIO_SPEED_MEDIUM				1U
 #define GPIO_SPEED_HIGH					2U
 #define GPIO_SPEED_VERY_HIGH		3U
 
 //GPIO_OUTPUT_TYPE
+//typedef enum{
+//	GPIO_OUTPUT_TYPE_PP = 		0U,
+//	GPIO_OUTPUT_TYPE_OD = 		1U,
+//}GPIO_OutputType;
 #define GPIO_OUTPUT_TYPE_PP			0U
 #define GPIO_OUTPUT_TYPE_OD			1U
 
 //GPIO_PULL-UP_PULL-DOWN
+//typedef enum{
+//	GPIO_NO_PP = 							0U,
+//	GPIO_PULL_UP = 						1U,
+//	GPIO_PULL_DOWN = 					2U,
+//}GPIO_PUPD;
 #define GPIO_NO_PP							0U
 #define GPIO_PULL_UP						1U
 #define GPIO_PULL_DOWN					2U

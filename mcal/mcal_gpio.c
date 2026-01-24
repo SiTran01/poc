@@ -23,7 +23,7 @@ void MCAL_GPIO_Init(GPIO_Handle_t *pHandle){
 		
 	// speed config
 	tmp = pHandle->Port->OSPEEDR;
-	tmp &= (3U << pos);
+	tmp &= ~(3U << pos);
 	tmp |= ((uint32_t)(pHandle->Pinconfig.GPIO_PinSpeed & 0x3U) << pos);
 	pHandle->Port->OSPEEDR = tmp;
 	

@@ -10,7 +10,7 @@
 #define TIM_CHANNEL_4    4
 
 typedef struct{
-	TIMx_Type_Def *pTIMx;
+	TIM_Type_Def *pTIMx;
 	uint32_t Prescaler;
 	uint32_t Period;
 }TIM_Handle_t;

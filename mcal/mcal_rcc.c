@@ -63,7 +63,7 @@ void MCAL_RCC_GPIO_ClockControl(GPIO_Type_Def *Port, uint8_t EnOrDi)
 }
 
 //TIMER clock
-void MCAL_RCC_TIM_ClockControl(TIMx_Type_Def *pTIMx, uint8_t EnOrDi){
+void MCAL_RCC_TIM_ClockControl(TIM_Type_Def *pTIMx, uint8_t EnOrDi){
 	if(EnOrDi)
 	{
 				if(pTIMx == TIM2){ TIM2_CLOCK_ENABLE(); }
@@ -78,3 +78,35 @@ void MCAL_RCC_TIM_ClockControl(TIMx_Type_Def *pTIMx, uint8_t EnOrDi){
 	}
 }
 
+// ADC
+void MCAL_RCC_ADC_ClockControl(ADC_Type_Def *pADCx, uint8_t EnOrDi)
+{
+    if (EnOrDi)
+    {
+        if (pADCx == ADC1) { ADC1_CLOCK_ENABLE(); }
+        else if (pADCx == ADC2) { ADC2_CLOCK_ENABLE(); }
+        else if (pADCx == ADC3) { ADC3_CLOCK_ENABLE(); }
+    }
+    else
+    {
+        if (pADCx == ADC1) { ADC1_CLOCK_DISABLE(); }
+        else if (pADCx == ADC2) { ADC2_CLOCK_DISABLE(); }
+				else if (pADCx == ADC3) { ADC3_CLOCK_DISABLE(); }
+    }
+}
+
+void MCAL_RCC_I2C_ClockControl(I2C_Type_Def *pI2Cx, uint8_t EnOrDi)
+{
+		if (EnOrDi)
+    {
+        if (pI2Cx == I2C1) { I2C1_CLOCK_ENABLE(); }
+        else if (pI2Cx == I2C2) { I2C2_CLOCK_ENABLE(); }
+        else if (pI2Cx == I2C3) { I2C3_CLOCK_ENABLE(); }
+    }
+    else
+    {
+        if (pI2Cx == I2C1) { I2C1_CLOCK_DISABLE(); }
+        else if (pI2Cx == I2C2) { I2C2_CLOCK_DISABLE(); }
+				else if (pI2Cx == I2C3) { I2C3_CLOCK_DISABLE(); }
+    }
+}

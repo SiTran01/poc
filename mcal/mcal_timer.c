@@ -3,7 +3,7 @@
 
 void MCAL_TIM_Base_Init(TIM_Handle_t *pTIMHandle){
 	
-	TIMx_Type_Def *pTIMx = pTIMHandle->pTIMx;
+	TIM_Type_Def *pTIMx = pTIMHandle->pTIMx;
 	MCAL_RCC_TIM_ClockControl(pTIMx, 1);
 	
 	pTIMx->PSC = pTIMHandle->Prescaler;
@@ -20,7 +20,7 @@ void MCAL_TIM_Base_Init(TIM_Handle_t *pTIMHandle){
 
 void MCAL_TIM_PWM_Config(TIM_Handle_t *pTIMHandle, uint8_t Channel, uint32_t Pulse)
 {
-    TIMx_Type_Def *pTIMx = pTIMHandle->pTIMx;
+    TIM_Type_Def *pTIMx = pTIMHandle->pTIMx;
 		MCAL_RCC_TIM_ClockControl(pTIMx, 1);
     switch(Channel)
     {
@@ -41,4 +41,5 @@ void MCAL_TIM_PWM_Config(TIM_Handle_t *pTIMHandle, uint8_t Channel, uint32_t Pul
         default:
             break;
     }
+		pTIMx->CR1 |= (1U << 0);
 }

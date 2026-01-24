@@ -134,21 +134,95 @@ typedef struct {
 	volatile uint32_t DCR;
 	volatile uint32_t DMAR;
 	volatile uint32_t OR;
-}TIMx_Type_Def;
+}TIM_Type_Def;
 
 #define APB1_ADDR 					PERIPH_ADDR
-#define TIMx_OFFSET  				0x0400UL
-#define TIM2_ADDR						(APB1_ADDR + (TIMx_OFFSET*0))
-#define TIM3_ADDR						(APB1_ADDR + (TIMx_OFFSET*1))
-#define TIM4_ADDR						(APB1_ADDR + (TIMx_OFFSET*2))
-#define TIM5_ADDR						(APB1_ADDR + (TIMx_OFFSET*3))
+#define TIM_OFFSET  				0x0400UL
+#define TIM2_ADDR						(APB1_ADDR + (TIM_OFFSET*0))
+#define TIM3_ADDR						(APB1_ADDR + (TIM_OFFSET*1))
+#define TIM4_ADDR						(APB1_ADDR + (TIM_OFFSET*2))
+#define TIM5_ADDR						(APB1_ADDR + (TIM_OFFSET*3))
 
 //mapping
-#define TIM2								((TIMx_Type_Def *) TIM2_ADDR)
-#define TIM3								((TIMx_Type_Def *) TIM3_ADDR)
-#define TIM4								((TIMx_Type_Def *) TIM4_ADDR)
-#define TIM5								((TIMx_Type_Def *) TIM5_ADDR)
+#define TIM2								((TIM_Type_Def *) TIM2_ADDR)
+#define TIM3								((TIM_Type_Def *) TIM3_ADDR)
+#define TIM4								((TIM_Type_Def *) TIM4_ADDR)
+#define TIM5								((TIM_Type_Def *) TIM5_ADDR)
 
 
+
+/*****************************
+ * ADC
+ *****************************/
+#define APB2_ADDR                   (PERIPH_ADDR + 0x00010000UL)
+
+#define ADC1_ADDR                   (APB2_ADDR + 0x2000UL)
+#define ADC2_ADDR                   (ADC1_ADDR + 0x100UL)
+#define ADC3_ADDR                   (ADC1_ADDR + 0x200UL)
+
+typedef struct {
+	volatile uint32_t SR;     
+  volatile uint32_t CR1;    
+  volatile uint32_t CR2;    
+  volatile uint32_t SMPR1;  
+  volatile uint32_t SMPR2;  
+  volatile uint32_t JOFR1;  
+  volatile uint32_t JOFR2;  
+  volatile uint32_t JOFR3;  
+  volatile uint32_t JOFR4;  
+  volatile uint32_t HTR;    
+  volatile uint32_t LTR;    
+  volatile uint32_t SQR1;   
+  volatile uint32_t SQR2;   
+  volatile uint32_t SQR3;   
+  volatile uint32_t JSQR;   
+  volatile uint32_t JDR1;   
+  volatile uint32_t JDR2;   
+  volatile uint32_t JDR3;   
+  volatile uint32_t JDR4;   
+  volatile uint32_t DR;     
+} ADC_Type_Def;
+
+// 3. Struct Common (Gi? nguyên)
+typedef struct {
+    volatile uint32_t CSR;      
+    volatile uint32_t CCR;      
+    volatile uint32_t CDR;      
+} ADC_Common_Type_Def;
+
+// 4. Mapping (Them ADC2, ADC3 vao)
+#define ADC1         ((ADC_Type_Def *) ADC1_ADDR)
+#define ADC2         ((ADC_Type_Def *) ADC2_ADDR)
+#define ADC3         ((ADC_Type_Def *) ADC3_ADDR)
+
+// ADC Common nam ngay sau ADC3 (Offset 0x300 so voi ADC1)
+#define ADC_COMMON   ((ADC_Common_Type_Def *) (ADC1_ADDR + 0x300UL))
+
+
+
+/*****************************
+ * I2C
+ *****************************/
+#define I2C1_ADDR                   (APB1_ADDR + 0x5400UL)
+#define I2C2_ADDR                   (I2C1_ADDR + 0x0400UL)
+#define I2C3_ADDR                   (I2C1_ADDR + 0x0800UL)
+
+typedef struct{
+	volatile uint32_t CR1;
+	volatile uint32_t CR2;
+	volatile uint32_t OAR1;
+	volatile uint32_t OAR2;
+	volatile uint32_t DR;
+	volatile uint32_t SR1;
+	volatile uint32_t SR2;
+	volatile uint32_t CCR;
+	volatile uint32_t TRISE;
+	volatile uint32_t FLTR;
+}I2C_Type_Def;
+
+//mapping
+#define I2C1						((I2C_Type_Def *) I2C1_ADDR)
+#define I2C2						((I2C_Type_Def *) I2C2_ADDR)
+#define I2C3						((I2C_Type_Def *) I2C3_ADDR)
 
 #endif
