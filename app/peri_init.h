@@ -5,11 +5,13 @@
 #include "ecu_pedal.h"
 #include "ecu_servo.h"
 #include "ecu_oled.h"
+#include "ecu_can.h"
 
 //u know wat?
 extern Pedal_Handle_t hPedal;
 extern Servo_Handle_t hServo;
 extern OLED_Handle_t hOled; 
+extern CAN_Handle_t hCAN;
 
 void PERI_Init(void);
 

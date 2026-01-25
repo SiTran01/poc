@@ -225,4 +225,81 @@ typedef struct{
 #define I2C2						((I2C_Type_Def *) I2C2_ADDR)
 #define I2C3						((I2C_Type_Def *) I2C3_ADDR)
 
+
+
+/*****************************
+ * CAN
+ *****************************/
+#define CAN1_ADDR										(APB1_ADDR + 0x6400UL)
+#define CAN2_ADDR										(CAN1_ADDR + 0x0400UL)
+
+typedef struct
+{
+  volatile uint32_t TIR;   // Transmit Mailbox Identifier Register
+  volatile uint32_t TDTR;  // Transmit Mailbox Data Length Control and Time Stamp Register
+  volatile uint32_t TDLR;  // Transmit Mailbox Data Low Register
+  volatile uint32_t TDHR;  // Transmit Mailbox Data High Register
+} CAN_TxMailBox_TypeDef;
+
+/* 2. ??nh nghia c?u tr?c cho 1 H?m thu nh?n (Rx FIFO Mailbox) */
+typedef struct
+{
+  volatile uint32_t RIR;   // Receive FIFO Mailbox Identifier Register
+  volatile uint32_t RDTR;  // Receive FIFO Mailbox Data Length Control and Time Stamp Register
+  volatile uint32_t RDLR;  // Receive FIFO Mailbox Data Low Register
+  volatile uint32_t RDHR;  // Receive FIFO Mailbox Data High Register
+} CAN_FIFOMailBox_TypeDef;
+
+/* 3. ??nh nghia c?u tr?c cho 1 Bank b? l?c (Filter Bank) */
+typedef struct
+{
+  volatile uint32_t FR1;   // Filter Bank Register 1
+  volatile uint32_t FR2;   // Filter Bank Register 2
+} CAN_FilterRegister_TypeDef;
+
+/* 4. ??nh nghia c?u tr?c ch?nh CAN_TypeDef */
+typedef struct
+{
+  /* --- Control and Status Registers (Offset 0x000 - 0x01C) --- */
+  volatile uint32_t MCR;       // Master Control Register
+  volatile uint32_t MSR;       // Master Status Register
+  volatile uint32_t TSR;       // Transmit Status Register
+  volatile uint32_t RF0R;      // Receive FIFO 0 Register
+  volatile uint32_t RF1R;      // Receive FIFO 1 Register
+  volatile uint32_t IER;       // Interrupt Enable Register
+  volatile uint32_t ESR;       // Error Status Register
+  volatile uint32_t BTR;       // Bit Timing Register
+
+  /* --- Reserved Gap 1 (Offset 0x020 - 0x17F) --- */
+  uint32_t Reserved0[88];      // Kho?ng tr?ng quan tr?ng b?n b? thi?u ? code cu
+
+  /* --- Mailboxes (Offset 0x180 - 0x1CF) --- */
+  CAN_TxMailBox_TypeDef    sTxMailBox[3];    // 3 H?m thu g?i (0, 1, 2)
+  CAN_FIFOMailBox_TypeDef  sFIFOMailBox[2];  // 2 H?m thu nh?n (FIFO 0, FIFO 1)
+
+  /* --- Reserved Gap 2 (Offset 0x1D0 - 0x1FF) --- */
+  uint32_t Reserved1[12];      // Kho?ng tr?ng tru?c khi v?o v?ng Filter
+
+  /* --- CAN Filter Registers (Offset 0x200 - ...) --- */
+  volatile uint32_t FMR;       // Filter Master Register
+  volatile uint32_t FM1R;      // Filter Mode Register
+  uint32_t Reserved2;          // 0x208
+  volatile uint32_t FS1R;      // Filter Scale Register
+  uint32_t Reserved3;          // 0x210
+  volatile uint32_t FFA1R;     // Filter FIFO Assignment Register
+  uint32_t Reserved4;          // 0x218
+  volatile uint32_t FA1R;      // Filter Activation Register
+  
+  uint32_t Reserved5[8];       // 0x220 - 0x23F
+
+  CAN_FilterRegister_TypeDef sFilterRegister[28];
+} CAN_TypeDef;
+
+
+#define CAN1                  ((CAN_TypeDef *) CAN1_ADDR)
+#define CAN2                  ((CAN_TypeDef *) CAN2_ADDR)
+
+
+
 #endif
+

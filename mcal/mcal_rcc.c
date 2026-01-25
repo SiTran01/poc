@@ -110,3 +110,33 @@ void MCAL_RCC_I2C_ClockControl(I2C_Type_Def *pI2Cx, uint8_t EnOrDi)
 				else if (pI2Cx == I2C3) { I2C3_CLOCK_DISABLE(); }
     }
 }
+
+
+void MCAL_RCC_CAN_ClockControl(CAN_TypeDef *pCANx, uint8_t EnOrDi)
+{
+    if (EnOrDi)
+    {
+        if (pCANx == CAN1) 
+        { 
+            CAN1_CLOCK_ENABLE(); 
+        }
+        else if (pCANx == CAN2) 
+        { 
+            /* Luu ý: Ð? dùng CAN2, thông thu?ng c?n enable c? clock CAN1 */
+            CAN1_CLOCK_ENABLE(); 
+            CAN2_CLOCK_ENABLE(); 
+        }
+    }
+    else
+    {
+        if (pCANx == CAN1) 
+        { 
+            CAN1_CLOCK_DISABLE(); 
+        }
+        else if (pCANx == CAN2) 
+        { 
+            CAN2_CLOCK_DISABLE(); 
+        }
+    }
+}
+

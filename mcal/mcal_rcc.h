@@ -78,12 +78,27 @@
 
 
 
+/*****************************
+ * CAN clock enable macros
+ *****************************/
+ 
+// Enable clock
+#define CAN1_CLOCK_ENABLE()   (RCC->APB1ENR |= (1U << 25))
+#define CAN2_CLOCK_ENABLE()   (RCC->APB1ENR |= (1U << 26))
+
+// Disable clock
+#define CAN1_CLOCK_DISABLE()  (RCC->APB1ENR &= ~(1U << 25))
+#define CAN2_CLOCK_DISABLE()  (RCC->APB1ENR &= ~(1U << 26))
+
+
+
 // Hàm này d? kh?i t?o Clock h? th?ng
 void MCAL_RCC_InitSystemClock(void);
 void MCAL_RCC_GPIO_ClockControl(GPIO_Type_Def *Port, uint8_t EnOrDi);
 void MCAL_RCC_TIM_ClockControl(TIM_Type_Def *pTIMx, uint8_t EnOrDi);
 void MCAL_RCC_ADC_ClockControl(ADC_Type_Def *pADCx, uint8_t EnOrDi);
 void MCAL_RCC_I2C_ClockControl(I2C_Type_Def *pI2Cx, uint8_t EnOrDi);
+void MCAL_RCC_CAN_ClockControl(CAN_TypeDef *pCANx, uint8_t EnOrDi);
 
 
 #endif

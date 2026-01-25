@@ -4,6 +4,7 @@
 Pedal_Handle_t hPedal;
 Servo_Handle_t hServo;
 OLED_Handle_t  hOled;
+CAN_Handle_t hCAN;
 
 void PERI_Init(void) {
     // 1. Init Pedal
@@ -28,4 +29,12 @@ void PERI_Init(void) {
                   OLED_SCL_PIN, 
                   OLED_SDA_PIN, 
                   OLED_GPIO_AF);
+									
+		// 4. Init CAN
+    ECU_CAN_Init(&hCAN, 
+                 CAN_INSTANCE, 
+                 CAN_GPIO_PORT, 
+                 CAN_TX_PIN, 
+                 CAN_RX_PIN, 
+                 CAN_GPIO_AF);
 }
