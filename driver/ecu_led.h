@@ -14,7 +14,7 @@ typedef struct{
 	uint8_t GPIO_PinNumber;
 }LED_Handle_t;
 
-void ECU_LED_Init(LED_Handle_t *pLed);
+void ECU_LED_Init(LED_Handle_t *pLed, GPIO_Type_Def *pGPIOx, uint8_t PinNumber);
 void ECU_LED_SetState(LED_Handle_t *pLed, LED_State_t state);
 void ECU_LED_Toggle(LED_Handle_t *pLed);
 void ECU_LED_Toggle_Delayms(LED_Handle_t *pLed, uint16_t ms);

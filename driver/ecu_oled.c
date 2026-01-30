@@ -2,12 +2,17 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
+#include <string.h> // [QUAN TRỌNG] Thêm thư viện này để dùng memcmp, memcpy
 
-
-// Bộ nhớ đệm màn hình (Buffer) - 1KB RAM (128x64 bits)
+// Bộ nhớ đệm màn hình hiện tại (New Frame)
 static uint8_t OLED_Buffer[1024];
 
+// [MỚI] Bộ nhớ lưu trạng thái cũ (Old Frame) để so sánh
+static uint8_t OLED_Buffer_Prev[1024];
+
+/* ============================================================
+   PRIVATE FUNCTIONS
+   ============================================================ */
 static void OLED_WriteCommand(OLED_Handle_t *pOled, uint8_t cmd) {
     uint8_t data[2];
     data[0] = 0x00; // Control Byte: 0x00 = Command Stream
@@ -17,25 +22,23 @@ static void OLED_WriteCommand(OLED_Handle_t *pOled, uint8_t cmd) {
     MCAL_I2C_MasterSendData(&pOled->I2C_Handle, data, 2, OLED_I2C_ADDR);
 }
 
-
+/* ============================================================
+   INIT FUNCTION
+   ============================================================ */
 void ECU_OLED_Init(OLED_Handle_t *pOled, I2C_Type_Def *I2Cx, 
                    GPIO_Type_Def *GPIO_Port, uint8_t SCL_Pin, uint8_t SDA_Pin, uint8_t AF_Mode) 
 {
     if(pOled == NULL || I2Cx == NULL || GPIO_Port == NULL) return;
 
-    
     GPIO_Handle_t i2c_gpio;
     i2c_gpio.Port = GPIO_Port;
     
-    // Cấu hình chuẩn cho giao tiếp I2C:
-    // 1. Alternate Function: Để ngoại vi I2C kiểm soát chân.
-    // 2. Open Drain (OD): Bắt buộc với I2C để tránh ngắn mạch bus.
-    // 3. Pull-Up (PU): Kéo mức tín hiệu lên cao khi rảnh (Idle).
-    i2c_gpio.Pinconfig.GPIO_PinMode      = GPIO_MODE_ALTFN;      
-    i2c_gpio.Pinconfig.GPIO_PinAltFunMode = AF_Mode;        
-    i2c_gpio.Pinconfig.GPIO_OutputType   = GPIO_OUTPUT_TYPE_OD; 
-    i2c_gpio.Pinconfig.GPIO_PinSpeed     = GPIO_SPEED_HIGH;
-    i2c_gpio.Pinconfig.GPIO_PUPD         = GPIO_PULL_UP; 
+    // Cấu hình GPIO
+    i2c_gpio.Pinconfig.GPIO_PinMode       = GPIO_MODE_ALTFN;       
+    i2c_gpio.Pinconfig.GPIO_PinAltFunMode = AF_Mode;         
+    i2c_gpio.Pinconfig.GPIO_OutputType    = GPIO_OUTPUT_TYPE_OD; 
+    i2c_gpio.Pinconfig.GPIO_PinSpeed      = GPIO_SPEED_HIGH;
+    i2c_gpio.Pinconfig.GPIO_PUPD          = GPIO_PULL_UP; 
 
     // Init chân SCL
     i2c_gpio.Pinconfig.GPIO_PinNumber = SCL_Pin;
@@ -46,59 +49,56 @@ void ECU_OLED_Init(OLED_Handle_t *pOled, I2C_Type_Def *I2Cx,
     MCAL_GPIO_Init(&i2c_gpio);
 
     /* -------------------------------------------
-       BƯỚC 2: Cấu hình I2C Peripheral
+       Cấu hình I2C Peripheral
        ------------------------------------------- */
     pOled->I2C_Handle.pI2Cx = I2Cx;
     
     // Cấu hình I2C Fast Mode (400kHz)
     pOled->I2C_Handle.I2C_Config.I2C_SCLSpeed      = 400000;
-    pOled->I2C_Handle.I2C_Config.I2C_DeviceAddress = 0; // Master address (không quan trọng)
+    pOled->I2C_Handle.I2C_Config.I2C_DeviceAddress = 0; 
     pOled->I2C_Handle.I2C_Config.I2C_AckControl    = I2C_ACK_ENABLE; 
     pOled->I2C_Handle.I2C_Config.I2C_FMDutyCycle   = I2C_FM_DUTY_2; 
 
     MCAL_I2C_Init(&pOled->I2C_Handle);
-
-    /* -------------------------------------------
-       BƯỚC 3: KÍCH HOẠT I2C (QUAN TRỌNG)
-       Bật bit PE (Peripheral Enable) trong thanh ghi CR1.
-       Nếu thiếu bước này, I2C sẽ không hoạt động.
-       ------------------------------------------- */
     MCAL_I2C_PeripheralControl(I2Cx, 1); 
 
     /* -------------------------------------------
-       BƯỚC 4: Gửi chuỗi lệnh khởi tạo màn hình (SH1106/SSD1306)
+       Gửi chuỗi lệnh khởi tạo màn hình
        ------------------------------------------- */
     OLED_WriteCommand(pOled, 0xAE); // Tắt màn hình
-    OLED_WriteCommand(pOled, 0x20); // Memory Addressing Mode
-    OLED_WriteCommand(pOled, 0x10); // Page Addressing Mode
+    OLED_WriteCommand(pOled, 0x20); 
+    OLED_WriteCommand(pOled, 0x10); 
     OLED_WriteCommand(pOled, 0xB0); 
     OLED_WriteCommand(pOled, 0xC8); 
     OLED_WriteCommand(pOled, 0x00); 
     OLED_WriteCommand(pOled, 0x10); 
     OLED_WriteCommand(pOled, 0x40); 
-    OLED_WriteCommand(pOled, 0x81); // Contrast Control
+    OLED_WriteCommand(pOled, 0x81); 
     OLED_WriteCommand(pOled, 0xFF);
-    OLED_WriteCommand(pOled, 0xA1); // Segment Re-map
-    OLED_WriteCommand(pOled, 0xA6); // Normal Display
-    OLED_WriteCommand(pOled, 0xA8); // Multiplex Ratio
+    OLED_WriteCommand(pOled, 0xA1); 
+    OLED_WriteCommand(pOled, 0xA6); 
+    OLED_WriteCommand(pOled, 0xA8); 
     OLED_WriteCommand(pOled, 0x3F);
-    OLED_WriteCommand(pOled, 0xA4); // Output Follows RAM content
-    OLED_WriteCommand(pOled, 0xD3); // Display Offset
+    OLED_WriteCommand(pOled, 0xA4); 
+    OLED_WriteCommand(pOled, 0xD3); 
     OLED_WriteCommand(pOled, 0x00);
-    OLED_WriteCommand(pOled, 0xD5); // Clock Divide Ratio
+    OLED_WriteCommand(pOled, 0xD5); 
     OLED_WriteCommand(pOled, 0xF0);
-    OLED_WriteCommand(pOled, 0xD9); // Pre-charge Period
+    OLED_WriteCommand(pOled, 0xD9); 
     OLED_WriteCommand(pOled, 0x22);
-    OLED_WriteCommand(pOled, 0xDA); // COM Hardware Config
+    OLED_WriteCommand(pOled, 0xDA); 
     OLED_WriteCommand(pOled, 0x12);
-    OLED_WriteCommand(pOled, 0xDB); // VCOMH Deselect Level
+    OLED_WriteCommand(pOled, 0xDB); 
     OLED_WriteCommand(pOled, 0x20);
-    OLED_WriteCommand(pOled, 0x8D); // Charge Pump Setting
-    OLED_WriteCommand(pOled, 0x14); // Enable Charge Pump
-    OLED_WriteCommand(pOled, 0xAF); // Bật màn hình (Display ON)
+    OLED_WriteCommand(pOled, 0x8D); 
+    OLED_WriteCommand(pOled, 0x14); 
+    OLED_WriteCommand(pOled, 0xAF); // Bật màn hình
 
-    // Xóa rác trên RAM và cập nhật màn hình đen
-    ECU_OLED_Clear(pOled);
+    // [MỚI] Xóa sạch cả 2 buffer để đồng bộ dữ liệu ban đầu
+    memset(OLED_Buffer, 0, 1024);
+    memset(OLED_Buffer_Prev, 0, 1024);
+    
+    // Cập nhật màn hình đen lần đầu (Gửi hết)
     ECU_OLED_UpdateScreen(pOled);
 }
 
@@ -107,16 +107,14 @@ void ECU_OLED_Init(OLED_Handle_t *pOled, I2C_Type_Def *I2Cx,
    ============================================================ */
 
 void ECU_OLED_Clear(OLED_Handle_t *pOled) {
-    (void)pOled; // Tránh warning unused variable
-    for(int i = 0; i < 1024; i++) {
-        OLED_Buffer[i] = 0x00;
-    }
+    (void)pOled; 
+    // Dùng memset cho nhanh gọn
+    memset(OLED_Buffer, 0, 1024);
 }
 
 void ECU_OLED_DrawPixel(uint8_t x, uint8_t y, uint8_t color) {
     if(x >= OLED_WIDTH || y >= OLED_HEIGHT) return;
 
-    // Tính toán vị trí bit trong buffer 1D
     if(color == OLED_COLOR_WHITE) {
         OLED_Buffer[x + (y / 8) * OLED_WIDTH] |= (1 << (y % 8));
     } else {
@@ -124,38 +122,46 @@ void ECU_OLED_DrawPixel(uint8_t x, uint8_t y, uint8_t color) {
     }
 }
 
+// [HÀM QUAN TRỌNG NHẤT - ĐÃ TỐI ƯU SMART UPDATE]
 void ECU_OLED_UpdateScreen(OLED_Handle_t *pOled) {
     uint8_t i2c_buff[129]; // 1 byte Control + 128 byte Data
+    uint16_t offset;
 
-    // Quét qua 8 Page (mỗi page cao 8 pixel)
+    // Quét qua 8 Page
     for(uint8_t page = 0; page < 8; page++) {
-        OLED_WriteCommand(pOled, 0xB0 + page); // Set Page Start Address
-        
-        // Màn 1.3 inch (SH1106) bị lệch 2 cột -> Start cột tại 0x02
-        // Với SSD1306 (0.96 inch) thì thường là 0x00
-        OLED_WriteCommand(pOled, 0x02); // Low Column Address (Offset 2)
-        OLED_WriteCommand(pOled, 0x10); // High Column Address
+        offset = page * 128; // Tính vị trí đầu của Page trong mảng 1024 byte
 
-        // CHUẨN BỊ GÓI DATA
-        i2c_buff[0] = 0x40; // Control Byte: 0x40 = Data Stream
-        
-        // Copy 1 dòng (128 cột) từ buffer vào gói I2C
-        for(int i = 0; i < 128; i++) {
-            i2c_buff[i+1] = OLED_Buffer[OLED_WIDTH * page + i];
+        // --- BƯỚC 1: SO SÁNH (Compare) ---
+        // Nếu dữ liệu trang này ở Buffer Mới GIỐNG Y HỆT Buffer Cũ -> Bỏ qua (Skip)
+        // Hàm memcmp trả về 0 nếu 2 vùng nhớ giống nhau
+        if (memcmp(&OLED_Buffer[offset], &OLED_Buffer_Prev[offset], 128) == 0) {
+            continue; // Nhảy sang Page tiếp theo, không gửi I2C -> Tiết kiệm thời gian!
         }
 
-        // Gửi 1 gói 129 bytes đi 1 lần cho tối ưu tốc độ
+        // --- BƯỚC 2: NẾU KHÁC -> GỬI I2C ---
+        OLED_WriteCommand(pOled, 0xB0 + page); // Set Page Start Address
+        OLED_WriteCommand(pOled, 0x02);        // Low Column Address (SH1106 Offset)
+        OLED_WriteCommand(pOled, 0x10);        // High Column Address
+
+        // Chuẩn bị gói DATA
+        i2c_buff[0] = 0x40; // Control Byte: Data Stream
+        
+        // Copy 128 byte từ Buffer Mới vào gói tin I2C
+        memcpy(&i2c_buff[1], &OLED_Buffer[offset], 128);
+
+        // Gửi gói tin qua I2C
         MCAL_I2C_MasterSendData(&pOled->I2C_Handle, i2c_buff, 129, OLED_I2C_ADDR);
-				
-				
+        
+        // --- BƯỚC 3: CẬP NHẬT TRẠNG THÁI CŨ ---
+        // Copy dữ liệu vừa gửi vào Buffer Cũ để lần sau so sánh tiếp
+        memcpy(&OLED_Buffer_Prev[offset], &OLED_Buffer[offset], 128);
     }
 }
 
 /* ============================================================
    PUBLIC FUNCTIONS - TEXT (FONTS)
    ============================================================ */
-
-// Font 5x7
+// Giữ nguyên logic cũ
 void ECU_OLED_PrintChar_F5x7(uint8_t x, uint8_t y, char c) {
     if(c < 32 || c > 126) c = '?'; 
     
@@ -179,7 +185,6 @@ void ECU_OLED_PrintString_F5x7(uint8_t x, uint8_t y, char *str) {
     }
 }
 
-// Font 3x5
 void ECU_OLED_PrintChar_F3x5(uint8_t x, uint8_t y, char c) {
     if(c < 32 || c > 126) c = '?';
     
@@ -252,7 +257,6 @@ void ECU_OLED_DrawSemiCircle(uint8_t x0, uint8_t y0, uint8_t r, uint8_t color) {
         ddF_x += 2;
         f += ddF_x;
 
-        // Chỉ vẽ phần cung tròn phía trên tâm (y_plot < y0)
         ECU_OLED_DrawPixel(x0 + x, y0 - y, color);
         ECU_OLED_DrawPixel(x0 + y, y0 - x, color);
         ECU_OLED_DrawPixel(x0 - x, y0 - y, color);
@@ -266,41 +270,29 @@ void ECU_OLED_DrawSemiCircle(uint8_t x0, uint8_t y0, uint8_t r, uint8_t color) {
 #define PI 3.14159265
 
 void ECU_OLED_DrawSpeedometer(uint8_t speed) {
-    // Tọa độ tâm đồng hồ
     uint8_t cx = 64;
     uint8_t cy = 63; 
     uint8_t radius = 55; 
 
-    // 1. Vẽ khung đồng hồ
     ECU_OLED_DrawSemiCircle(cx, cy, radius, OLED_COLOR_WHITE);
     ECU_OLED_DrawSemiCircle(cx, cy, radius - 1, OLED_COLOR_WHITE);
 
-    // 2. Giới hạn tốc độ
     if(speed > 100) speed = 100;
-
-    // 3. Tính góc kim
     float angle = PI - ((float)speed / 100.0f) * PI;
 
-    // 4. Tính tọa độ đầu kim [KHẮC PHỤC LỖI TẠI ĐÂY]
     uint8_t needle_len = radius - 5;
-    
-    // Dùng int16_t để chứa được số âm khi cos/sin trả về âm
     int16_t tip_x_temp = cx + (int16_t)(cos(angle) * needle_len);
     int16_t tip_y_temp = cy - (int16_t)(sin(angle) * needle_len); 
 
-    // Kẹp biên lại cho an toàn (Tránh vẽ ra ngoài RAM gây treo)
     if (tip_x_temp < 0) tip_x_temp = 0;
     if (tip_x_temp > 127) tip_x_temp = 127;
     if (tip_y_temp < 0) tip_y_temp = 0;
     if (tip_y_temp > 63) tip_y_temp = 63;
 
-    // 5. Vẽ kim (Giờ ép kiểu về uint8_t mới an toàn)
     ECU_OLED_DrawLine(cx, cy, (uint8_t)tip_x_temp, (uint8_t)tip_y_temp, OLED_COLOR_WHITE);
 
-    // 6. Hiển thị số
     char buff[5];
     sprintf(buff, "%d", speed);
-    
     uint8_t text_x = 64 - (strlen(buff) * 6) / 2;
     ECU_OLED_PrintString_F5x7(text_x, cy - 10, buff);
 }

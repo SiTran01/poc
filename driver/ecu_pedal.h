@@ -7,8 +7,8 @@
 #include "mcal_gpio.h"
 
 
-#define PEDAL_MIN_ADC       0    
-#define PEDAL_MAX_ADC       4095  
+#define PEDAL_MIN_ADC       50    
+#define PEDAL_MAX_ADC       4045  
 
 
 typedef struct {

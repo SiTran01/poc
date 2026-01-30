@@ -7,7 +7,10 @@ static void soft_delay(uint32_t cnt){
 	for(volatile uint32_t i = 0; i< cnt; i++);
 }
 
-void ECU_LED_Init(LED_Handle_t *pLed){
+void ECU_LED_Init(LED_Handle_t *pLed, GPIO_Type_Def *pGPIOx, uint8_t PinNumber){
+	pLed->pGPIOx = pGPIOx;
+  pLed->GPIO_PinNumber = PinNumber;
+	
 	GPIO_Handle_t gpio_cfg;
 	gpio_cfg.Port = pLed->pGPIOx;
 	gpio_cfg.Pinconfig.GPIO_PinNumber = pLed->GPIO_PinNumber;
