@@ -4,21 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 
-/* ============================================================
-   PRIVATE VARIABLES & DEFINITIONS
-   ============================================================ */
 
 // Bộ nhớ đệm màn hình (Buffer) - 1KB RAM (128x64 bits)
 static uint8_t OLED_Buffer[1024];
 
-/* ============================================================
-   PRIVATE FUNCTIONS
-   ============================================================ */
-
-/**
- * @brief  Gửi một byte lệnh xuống OLED qua I2C
- * @param  cmd: Mã lệnh hex (VD: 0xAE, 0xAF...)
- */
 static void OLED_WriteCommand(OLED_Handle_t *pOled, uint8_t cmd) {
     uint8_t data[2];
     data[0] = 0x00; // Control Byte: 0x00 = Command Stream
@@ -28,29 +17,13 @@ static void OLED_WriteCommand(OLED_Handle_t *pOled, uint8_t cmd) {
     MCAL_I2C_MasterSendData(&pOled->I2C_Handle, data, 2, OLED_I2C_ADDR);
 }
 
-/* ============================================================
-   PUBLIC FUNCTIONS - INITIALIZATION
-   ============================================================ */
 
-/**
- * @brief  Khởi tạo OLED "All-in-One".
- * Tự động cấu hình GPIO và I2C Peripheral.
- * @param  pOled: Con trỏ struct quản lý OLED
- * @param  I2Cx: Bộ I2C muốn dùng (I2C1, I2C2...)
- * @param  GPIO_Port: Port chứa chân I2C (GPIOB...)
- * @param  SCL_Pin: Số chân SCL (VD: 6)
- * @param  SDA_Pin: Số chân SDA (VD: 7)
- * @param  AF_Mode: Chế độ Alternate Function (VD: 4 cho I2C1 trên F407)
- */
 void ECU_OLED_Init(OLED_Handle_t *pOled, I2C_Type_Def *I2Cx, 
                    GPIO_Type_Def *GPIO_Port, uint8_t SCL_Pin, uint8_t SDA_Pin, uint8_t AF_Mode) 
 {
     if(pOled == NULL || I2Cx == NULL || GPIO_Port == NULL) return;
 
-    /* -------------------------------------------
-       BƯỚC 1: Cấu hình GPIO (SCL & SDA)
-       * Lưu ý: Hàm MCAL_GPIO_Init đã tự động bật Clock cho GPIO Port.
-       ------------------------------------------- */
+    
     GPIO_Handle_t i2c_gpio;
     i2c_gpio.Port = GPIO_Port;
     
@@ -173,6 +146,8 @@ void ECU_OLED_UpdateScreen(OLED_Handle_t *pOled) {
 
         // Gửi 1 gói 129 bytes đi 1 lần cho tối ưu tốc độ
         MCAL_I2C_MasterSendData(&pOled->I2C_Handle, i2c_buff, 129, OLED_I2C_ADDR);
+				
+				
     }
 }
 
@@ -291,34 +266,41 @@ void ECU_OLED_DrawSemiCircle(uint8_t x0, uint8_t y0, uint8_t r, uint8_t color) {
 #define PI 3.14159265
 
 void ECU_OLED_DrawSpeedometer(uint8_t speed) {
-    // Tọa độ tâm đồng hồ (Giữa màn hình, sát đáy)
+    // Tọa độ tâm đồng hồ
     uint8_t cx = 64;
     uint8_t cy = 63; 
     uint8_t radius = 55; 
 
     // 1. Vẽ khung đồng hồ
     ECU_OLED_DrawSemiCircle(cx, cy, radius, OLED_COLOR_WHITE);
-    ECU_OLED_DrawSemiCircle(cx, cy, radius - 1, OLED_COLOR_WHITE); // Double line for thickness
+    ECU_OLED_DrawSemiCircle(cx, cy, radius - 1, OLED_COLOR_WHITE);
 
     // 2. Giới hạn tốc độ
     if(speed > 100) speed = 100;
 
-    // 3. Tính góc kim (0-100% -> 180-0 độ)
+    // 3. Tính góc kim
     float angle = PI - ((float)speed / 100.0f) * PI;
 
-    // 4. Tính tọa độ đầu kim
+    // 4. Tính tọa độ đầu kim [KHẮC PHỤC LỖI TẠI ĐÂY]
     uint8_t needle_len = radius - 5;
-    uint8_t tip_x = cx + (uint8_t)(cos(angle) * needle_len);
-    uint8_t tip_y = cy - (uint8_t)(sin(angle) * needle_len); 
+    
+    // Dùng int16_t để chứa được số âm khi cos/sin trả về âm
+    int16_t tip_x_temp = cx + (int16_t)(cos(angle) * needle_len);
+    int16_t tip_y_temp = cy - (int16_t)(sin(angle) * needle_len); 
 
-    // 5. Vẽ kim
-    ECU_OLED_DrawLine(cx, cy, tip_x, tip_y, OLED_COLOR_WHITE);
+    // Kẹp biên lại cho an toàn (Tránh vẽ ra ngoài RAM gây treo)
+    if (tip_x_temp < 0) tip_x_temp = 0;
+    if (tip_x_temp > 127) tip_x_temp = 127;
+    if (tip_y_temp < 0) tip_y_temp = 0;
+    if (tip_y_temp > 63) tip_y_temp = 63;
 
-    // 6. Hiển thị số (Digital Speed)
+    // 5. Vẽ kim (Giờ ép kiểu về uint8_t mới an toàn)
+    ECU_OLED_DrawLine(cx, cy, (uint8_t)tip_x_temp, (uint8_t)tip_y_temp, OLED_COLOR_WHITE);
+
+    // 6. Hiển thị số
     char buff[5];
     sprintf(buff, "%d", speed);
     
-    // Căn giữa số
     uint8_t text_x = 64 - (strlen(buff) * 6) / 2;
     ECU_OLED_PrintString_F5x7(text_x, cy - 10, buff);
 }

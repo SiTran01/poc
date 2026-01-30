@@ -8,7 +8,6 @@
 // SYS Clock
 void MCAL_RCC_InitSystemClock(void)
 {
-	// 1. B?t HSE (High Speed External - Th?ch anh ngoài 8MHz)
 	RCC->CR |= (1 << 16); // Bit 16: HSEON
 	
 	// Ch? cho HSE ?n d?nh (Bit 17: HSERDY)

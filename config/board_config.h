@@ -30,4 +30,11 @@
 #define CAN_INSTANCE          CAN1
 #define CAN_GPIO_AF           9
 
+//cfg 4 can 2 (Dashboard - Receiver)
+#define CAN2_GPIO_PORT        GPIOB
+#define CAN2_TX_PIN           13
+#define CAN2_RX_PIN           12
+#define CAN2_INSTANCE         CAN2
+#define CAN2_GPIO_AF          9
+
 #endif

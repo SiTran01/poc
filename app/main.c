@@ -1,98 +1,132 @@
-#include "stm32f407_base.h"
 #include "system_manager.h"
-#include "mcal_systick.h"
-#include "peri_init.h"      // Quan trọng: Chứa extern hPedal, hServo, hOled, hCAN
-#include "oled_font.h"      // Để dùng font chữ
+#include "peri_init.h" 
+#include "ecu_can.h"
+#include "ecu_oled.h"
+#include "ecu_pedal.h"   
+#include "ecu_servo.h"   
+#include "FreeRTOS.h"
+#include "task.h"
 
-/* --- DEFINES --- */
-#define ADC_FILTER_SIZE     8
-#define PEDAL_MIN_ADC       50
-#define PEDAL_MAX_ADC       4000
-#define CAN_TX_ID_SPEED     0x123 // ID của gói tin tốc độ
+//variable from peri
+extern Pedal_Handle_t hPedal;
+extern Servo_Handle_t hServo;
+extern OLED_Handle_t  hOled;
+extern CAN_Handle_t   hCAN;   // CAN 1 (trans)
+extern CAN_Handle_t   hCAN2;  // CAN 2 (recieve)
 
-/* --- GLOBAL VARS --- */
-uint16_t adc_raw, adc_flt;
-uint8_t pedal_percent, servo_angle;
+volatile uint8_t  g_throttle_val = 0; 
+volatile uint8_t  g_rx_val = 0;       
+volatile uint16_t g_debug_adc_raw = 0; 
 
-/* --- HELPER FUNCTIONS --- */
-uint16_t Filter_ADC(uint16_t new_sample) {
-    static uint16_t buffer[ADC_FILTER_SIZE];
-    static uint32_t sum = 0;
-    static uint8_t index = 0;
-    
-    sum -= buffer[index];
-    buffer[index] = new_sample;
-    sum += new_sample;
-    index++;
-    
-    if(index >= ADC_FILTER_SIZE) index = 0;
-    return (uint16_t)(sum / ADC_FILTER_SIZE);
+//task prototype
+void vTask_Engine_Control(void *pvParam); 
+void vTask_Dashboard_Rx(void *pvParam);   
+void vTask_Display_OLED(void *pvParam);   
+
+int main(void) {
+    System_Init();
+    PERI_Init(); 
+
+    RCC->AHB1ENR |= (1 << 3); 
+    GPIOD->MODER |= (1 << (13*2)) | (1 << (14*2)) | (1 << (15*2));
+
+    xTaskCreate(vTask_Engine_Control, "Engine_Ctrl", 256, NULL, 3, NULL);
+    xTaskCreate(vTask_Dashboard_Rx, "Dash_Rx", 256, NULL, 2, NULL);
+    xTaskCreate(vTask_Display_OLED, "Display", 512, NULL, 1, NULL);
+
+    vTaskStartScheduler();
+    while(1);
 }
 
-/* --- MAIN FUNCTION --- */
-int main(void) {
-    // 1. Khởi tạo Clock hệ thống (HSE/HSI -> PLL -> System Clock)
-    System_Init();
+/* ==============================================================================
+   TASK 1: GỬI TIN (ENGINE - CAN 1)
+   ============================================================================== */
+void vTask_Engine_Control(void *pvParam) {
+    uint8_t pedal_percent = 0;
+    uint8_t servo_angle = 0;
+    uint8_t tx_data[1];
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    
+    while(1) {
+        // read pedal - control serrvo
+        pedal_percent = ECU_Pedal_GetPosition(&hPedal);
+        g_throttle_val = pedal_percent;
+        g_debug_adc_raw = ADC1->DR; 
 
-    // 2. Khởi tạo Systick (Để dùng hàm MCAL_Delay_ms)
-    // Giả sử SystemCoreClock là 16MHz (hoặc tốc độ mày cấu hình trong System_Init)
-    // Nếu hàm System_Init đã gọi Systick rồi thì dòng này có thể bỏ
-//    MCAL_SysTick_Init(16000000); 
-
-    // 3. Khởi tạo ngoại vi (Pedal, Servo, OLED, CAN)
-    // Hàm này nằm trong peri_init.c -> Gọi ECU_..._Init -> Gọi MCAL_..._Init
-    PERI_Init();
-		uint8_t rx_speed = 0;
-    while (1) {
-        // [FIX 1] Xóa màn hình ngay đầu vòng lặp để chuẩn bị vẽ frame mới
-        ECU_OLED_Clear(&hOled); 
-
-        // --- B1: ĐỌC ADC & TÍNH TOÁN GỬI ĐI ---
-        adc_raw = MCAL_ADC_Read(&hPedal.ADCHandle);
-        adc_flt = Filter_ADC(adc_raw);
-        if (adc_flt < PEDAL_MIN_ADC) adc_flt = PEDAL_MIN_ADC;
-        else if (adc_flt > PEDAL_MAX_ADC) adc_flt = PEDAL_MAX_ADC;
-        
-        pedal_percent = (uint8_t)(((uint32_t)(adc_flt - PEDAL_MIN_ADC) * 100) / (PEDAL_MAX_ADC - PEDAL_MIN_ADC));
-        servo_angle = (uint8_t)(((uint16_t)pedal_percent * 180) / 100);
-
+        servo_angle = (uint8_t)((pedal_percent * 180) / 100);
         ECU_Servo_WriteAngle(&hServo, servo_angle);
 
-        // --- B2: GỬI CAN (TX) ---
-        uint8_t tx_data[1];
+        // send data via CAN 1 (&hCAN)
         tx_data[0] = pedal_percent;
-        ECU_CAN_Send(&hCAN, 0x123, tx_data, 1);
-
-        // --- B3: NHẬN CAN (RX) ---
-        uint32_t rx_id = 0;
-        uint8_t  rx_data[8] = {0};
-        uint8_t  rx_len = 0;
-
-        if(ECU_CAN_Receive(&hCAN, &rx_id, rx_data, &rx_len)) {
-            if(rx_id == 0x123) {
-                // [FIX 2] Cập nhật dữ liệu từ CAN vào biến hiển thị
-                rx_speed = rx_data[0]; 
-                
-                // In trạng thái (Lúc này vẽ lên buffer sạch nên không bị xóa)
-                ECU_OLED_PrintString_F5x7(80, 0, "LB:OK  "); 
-            } else {
-                ECU_OLED_PrintString_F5x7(80, 0, "LB:ERR ");
-            }
+        
+        // led 4 debug
+        // 
+        if(ECU_CAN_Send(&hCAN, 0x123, tx_data, 1)) {
+            GPIOD->ODR ^= (1 << 13); 
+            GPIOD->ODR &= ~(1 << 14);
         } else {
-            ECU_OLED_PrintString_F5x7(80, 0, "NO RX  ");
+            GPIOD->ODR |= (1 << 14); 
         }
 
-        // --- B4: HIỂN THỊ ĐỒNG HỒ ---
-        ECU_OLED_PrintString_F3x5(55, 0, "SPEED");
-        
-        // [FIX 3] Vẽ đồng hồ bằng dữ liệu nhận từ CAN (rx_speed)
-        // Chứ KHÔNG vẽ bằng pedal_percent (dữ liệu gốc)
-        ECU_OLED_DrawSpeedometer(rx_speed); 
-        
-        // --- B5: ĐẨY RA MÀN HÌNH ---
-        ECU_OLED_UpdateScreen(&hOled);
-
-        MCAL_Delay_ms(50); 
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(15)); 
     }
 }
 
+/* ==============================================================================
+   TASK 2: NHẬN TIN (DASHBOARD - CAN 2)
+   ============================================================================== */
+void vTask_Dashboard_Rx(void *pvParam) {
+    uint32_t rx_id;
+    uint8_t rx_data[8];
+    uint8_t rx_len;
+
+    while(1) {
+        
+        if(ECU_CAN_Receive(&hCAN2, &rx_id, rx_data, &rx_len)) { 
+            if(rx_id == 0x123) {
+                g_rx_val = rx_data[0]; 
+                
+                // --- LOGIC ĐÈN RX (PD15 - XANH) ---
+                
+                GPIOD->ODR ^= (1 << 15); 
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}
+
+/* ==============================================================================
+   TASK 3: OLED DISPLAY
+   ============================================================================== */
+void vTask_Display_OLED(void *pvParam) {
+    char buff[20];
+    uint8_t old_rx_val = 255;
+    uint8_t old_throttle = 255;
+
+    ECU_OLED_Clear(&hOled);
+    ECU_OLED_UpdateScreen(&hOled);
+
+    while(1) {
+        if(g_rx_val != old_rx_val || g_throttle_val != old_throttle) {
+            old_rx_val = g_rx_val;
+            old_throttle = g_throttle_val;
+
+            ECU_OLED_Clear(&hOled);
+            
+            //
+            sprintf(buff, "GAS:%d%% RAW:%d", g_throttle_val, g_debug_adc_raw);
+            ECU_OLED_PrintString_F5x7(0, 0, buff);
+            
+            // Đồng hồ: Hiển thị giá trị Nhận (CAN2 Rx)
+            ECU_OLED_DrawSpeedometer(g_rx_val);
+            
+            // Nếu nhận được data (>0), báo RX:OK
+            if(g_rx_val > 0) ECU_OLED_PrintString_F5x7(90, 20, "RX:OK");
+            else             ECU_OLED_PrintString_F5x7(90, 20, "WAIT...");
+
+            ECU_OLED_UpdateScreen(&hOled);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+}

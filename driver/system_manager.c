@@ -4,5 +4,5 @@
 
 void System_Init(){
 	MCAL_RCC_InitSystemClock();
-	MCAL_SysTick_Init(168000000);
+//	MCAL_SysTick_Init(168000000);
 }

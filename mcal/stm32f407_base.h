@@ -235,10 +235,10 @@ typedef struct{
 
 typedef struct
 {
-  volatile uint32_t TIR;   // Transmit Mailbox Identifier Register
-  volatile uint32_t TDTR;  // Transmit Mailbox Data Length Control and Time Stamp Register
-  volatile uint32_t TDLR;  // Transmit Mailbox Data Low Register
-  volatile uint32_t TDHR;  // Transmit Mailbox Data High Register
+  volatile uint32_t TIR;
+  volatile uint32_t TDTR;
+  volatile uint32_t TDLR;
+  volatile uint32_t TDHR;
 } CAN_TxMailBox_TypeDef;
 
 /* 2. ??nh nghia c?u tr?c cho 1 H?m thu nh?n (Rx FIFO Mailbox) */

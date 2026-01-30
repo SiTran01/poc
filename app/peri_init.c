@@ -5,6 +5,7 @@ Pedal_Handle_t hPedal;
 Servo_Handle_t hServo;
 OLED_Handle_t  hOled;
 CAN_Handle_t hCAN;
+CAN_Handle_t hCAN2;
 
 void PERI_Init(void) {
     // 1. Init Pedal
@@ -37,4 +38,12 @@ void PERI_Init(void) {
                  CAN_TX_PIN, 
                  CAN_RX_PIN, 
                  CAN_GPIO_AF);
+								 
+		// 5. Init CAN 2 (Dashboard)
+    ECU_CAN_Init(&hCAN2, 
+                 CAN2_INSTANCE, 
+                 CAN2_GPIO_PORT, 
+                 CAN2_TX_PIN, 
+                 CAN2_RX_PIN, 
+                 CAN2_GPIO_AF);
 }

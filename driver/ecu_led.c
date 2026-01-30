@@ -1,5 +1,7 @@
-#include "blind_led.h"
+#include "ecu_led.h"
 #include "mcal_systick.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 static void soft_delay(uint32_t cnt){
 	for(volatile uint32_t i = 0; i< cnt; i++);
@@ -27,14 +29,14 @@ void ECU_LED_Toggle(LED_Handle_t *pLed){
 
 void ECU_LED_Toggle_Delayms(LED_Handle_t *pLed, uint16_t ms){
 	MCAL_GPIO_TogglePin(pLed->pGPIOx, pLed->GPIO_PinNumber);
-	MCAL_Delay_ms(ms);
+	vTaskDelay(pdMS_TO_TICKS(ms));
 }
 
 
 void ECU_LED_Breathing(LED_Handle_t *pLed, uint32_t speed_delay) {
     int duty_cycle;
     
-    // 1. Sáng d?n (Duty cycle tang t? 0% lên 100%)
+    // 1. Sï¿½ng d?n (Duty cycle tang t? 0% lï¿½n 100%)
     for(duty_cycle = 0; duty_cycle < 100; duty_cycle++) {
         MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_SET); // B?t
         soft_delay(duty_cycle * speed_delay); // Th?i gian b?t tang d?n

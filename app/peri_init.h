@@ -12,6 +12,7 @@ extern Pedal_Handle_t hPedal;
 extern Servo_Handle_t hServo;
 extern OLED_Handle_t hOled; 
 extern CAN_Handle_t hCAN;
+extern CAN_Handle_t hCAN2; // CAN 2 (Dashboard)
 
 void PERI_Init(void);
 

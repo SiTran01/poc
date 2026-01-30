@@ -16,10 +16,10 @@ void MCAL_Delay_ms(uint32_t ms)
     while (g_TickCount != 0);
 }
 
-void SysTick_Handler(void)
-{
-    if (g_TickCount > 0)
-    {
-        g_TickCount--; 
-    }
-}
+//void SysTick_Handler(void)
+//{
+//    if (g_TickCount > 0)
+//    {
+//        g_TickCount--; 
+//    }
+//}

@@ -1,5 +1,5 @@
-#ifndef BLIND_LED_H
-#define BLIND_LED_H
+#ifndef ECU_LED_H
+#define ECU_LED_H
 
 #include "mcal_gpio.h"
 #include "stdint.h"
