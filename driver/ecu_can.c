@@ -8,12 +8,12 @@ void ECU_CAN_Init(CAN_Handle_t *pHandle, CAN_TypeDef *CANx,
 
     pHandle->pCANx = CANx;
 
-    /* 1. C?u hình GPIO cho CAN (TX và RX) 
+    /* 1. C?u hï¿½nh GPIO cho CAN (TX vï¿½ RX) 
        - Mode: Alternate Function
-       - AF: AF9 (thu?ng là v?y cho CAN1)
+       - AF: AF9 (thu?ng lï¿½ v?y cho CAN1)
        - Speed: Very High
-       - Output Type: Push Pull (CAN Controller t? lo vi?c lái bus)
-       - Pull-up: Nên có cho chân RX d? tránh nhi?u khi bus r?nh
+       - Output Type: Push Pull (CAN Controller t? lo vi?c lï¿½i bus)
+       - Pull-up: Nï¿½n cï¿½ cho chï¿½n RX d? trï¿½nh nhi?u khi bus r?nh
     */
     GPIO_Handle_t can_gpio;
     can_gpio.Port = GPIO_Port;
@@ -35,7 +35,7 @@ void ECU_CAN_Init(CAN_Handle_t *pHandle, CAN_TypeDef *CANx,
     /* 2. G?i MCAL d? Init b? CAN Controller */
     MCAL_CAN_Init(CANx);
 
-    /* 3. C?u hình Filter d? nh?n m?i tin (ho?c ch?nh l?i n?u mu?n l?c) */
+    /* 3. C?u hï¿½nh Filter d? nh?n m?i tin (ho?c ch?nh l?i n?u mu?n l?c) */
     MCAL_CAN_ConfigFilter(CANx);
 
     /* 4. Start CAN */
@@ -64,7 +64,7 @@ uint8_t ECU_CAN_Receive(CAN_Handle_t *pHandle, uint32_t *pID, uint8_t *pData, ui
         for(int i=0; i<rxHeader.DLC; i++) {
             pData[i] = rxHeader.Data[i];
         }
-        return 1; // Có tin m?i
+        return 1; // Cï¿½ tin m?i
     }
-    return 0; // Không có tin
+    return 0; // Khï¿½ng cï¿½ tin
 }

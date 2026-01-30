@@ -3,15 +3,19 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-static void soft_delay(uint32_t cnt){
-	for(volatile uint32_t i = 0; i< cnt; i++);
-}
+// static void soft_delay(uint32_t cnt){
+// 	for(volatile uint32_t i = 0; i< cnt; i++);
+// }
 
 void ECU_LED_Init(LED_Handle_t *pLed, GPIO_Type_Def *pGPIOx, uint8_t PinNumber){
-	pLed->pGPIOx = pGPIOx;
-  pLed->GPIO_PinNumber = PinNumber;
+	if ((pLed == NULL) || (pGPIOx == NULL)) {
+        return; // Or handle error appropriately
+    }
+    
+    pLed->pGPIOx = pGPIOx;
+    pLed->GPIO_PinNumber = PinNumber;
 	
-	GPIO_Handle_t gpio_cfg;
+	GPIO_Handle_t gpio_cfg = {0};
 	gpio_cfg.Port = pLed->pGPIOx;
 	gpio_cfg.Pinconfig.GPIO_PinNumber = pLed->GPIO_PinNumber;
 	
@@ -23,37 +27,40 @@ void ECU_LED_Init(LED_Handle_t *pLed, GPIO_Type_Def *pGPIOx, uint8_t PinNumber){
 }
 
 void ECU_LED_SetState(LED_Handle_t *pLed, LED_State_t state){
+	if (pLed == NULL) return;
 	MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, state);
 }
 
 void ECU_LED_Toggle(LED_Handle_t *pLed){
+	if (pLed == NULL) return;
 	MCAL_GPIO_TogglePin(pLed->pGPIOx, pLed->GPIO_PinNumber);
 }
 
 void ECU_LED_Toggle_Delayms(LED_Handle_t *pLed, uint16_t ms){
+	if (pLed == NULL) return;
 	MCAL_GPIO_TogglePin(pLed->pGPIOx, pLed->GPIO_PinNumber);
 	vTaskDelay(pdMS_TO_TICKS(ms));
 }
 
 
-void ECU_LED_Breathing(LED_Handle_t *pLed, uint32_t speed_delay) {
-    int duty_cycle;
+// void ECU_LED_Breathing(LED_Handle_t *pLed, uint32_t speed_delay) {
+//     int duty_cycle;
     
-    // 1. S�ng d?n (Duty cycle tang t? 0% l�n 100%)
-    for(duty_cycle = 0; duty_cycle < 100; duty_cycle++) {
-        MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_SET); // B?t
-        soft_delay(duty_cycle * speed_delay); // Th?i gian b?t tang d?n
+//     // 1. S�ng d?n (Duty cycle tang t? 0% l�n 100%)
+//     for(duty_cycle = 0; duty_cycle < 100; duty_cycle++) {
+//         MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_SET); // B?t
+//         soft_delay(duty_cycle * speed_delay); // Th?i gian b?t tang d?n
         
-        MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_RESET); // T?t
-        soft_delay((100 - duty_cycle) * speed_delay); // Th?i gian t?t gi?m d?n
-    }
+//         MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_RESET); // T?t
+//         soft_delay((100 - duty_cycle) * speed_delay); // Th?i gian t?t gi?m d?n
+//     }
     
-    // 2. T?i d?n (Duty cycle gi?m t? 100% v? 0%)
-    for(duty_cycle = 100; duty_cycle > 0; duty_cycle--) {
-        MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_SET);
-        soft_delay(duty_cycle * speed_delay);
+//     // 2. T?i d?n (Duty cycle gi?m t? 100% v? 0%)
+//     for(duty_cycle = 100; duty_cycle > 0; duty_cycle--) {
+//         MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_SET);
+//         soft_delay(duty_cycle * speed_delay);
         
-        MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_RESET);
-        soft_delay((100 - duty_cycle) * speed_delay);
-    }
-}
+//         MCAL_GPIO_WritePin(pLed->pGPIOx, pLed->GPIO_PinNumber, GPIO_PIN_RESET);
+//         soft_delay((100 - duty_cycle) * speed_delay);
+//     }
+// }

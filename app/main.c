@@ -7,7 +7,7 @@
 #include "ecu_led.h"  
 #include "FreeRTOS.h"
 #include "task.h"
-#include <stdlib.h> // [QUAN TRỌNG] Thêm thư viện này để dùng hàm abs()
+#include <stdlib.h>
 
 //variable from peri
 extern Pedal_Handle_t hPedal;
@@ -15,7 +15,7 @@ extern Servo_Handle_t hServo;
 extern OLED_Handle_t  hOled;
 extern CAN_Handle_t   hCAN;   // CAN 1 (trans)
 extern CAN_Handle_t   hCAN2;  // CAN 2 (recieve)
-extern LED_Handle_t   hGreenLed;
+
 
 volatile uint8_t  g_throttle_val = 0; 
 volatile uint8_t  g_rx_val = 0;       
@@ -25,7 +25,7 @@ volatile uint16_t g_debug_adc_raw = 0;
 void vTask_Engine_Control(void *pvParam); 
 void vTask_Dashboard_Rx(void *pvParam);   
 void vTask_Display_OLED(void *pvParam);   
-void vTask_Blink_LED (void *pvParam);
+
 
 int main(void) {
     System_Init();
@@ -34,9 +34,6 @@ int main(void) {
     xTaskCreate(vTask_Engine_Control, "Engine_Ctrl", 256, NULL, 3, NULL);
     xTaskCreate(vTask_Dashboard_Rx, "Dash_Rx", 256, NULL, 2, NULL);
     xTaskCreate(vTask_Display_OLED, "Display", 512, NULL, 1, NULL);
-    
-    // [FIX 1] Tăng Stack Size từ 64 lên 128 (Cho an toàn)
-    xTaskCreate(vTask_Blink_LED, "Blink", 128, NULL, 4, NULL);
 
     vTaskStartScheduler();
     while(1);
@@ -55,7 +52,7 @@ void vTask_Engine_Control(void *pvParam) {
         // read pedal - control serrvo
         pedal_percent = ECU_Pedal_GetPosition(&hPedal);
         g_throttle_val = pedal_percent;
-        g_debug_adc_raw = ADC1->DR; 
+        
 
         servo_angle = (uint8_t)((pedal_percent * 180) / 100);
         ECU_Servo_WriteAngle(&hServo, servo_angle);
@@ -88,7 +85,7 @@ void vTask_Dashboard_Rx(void *pvParam) {
 }
 
 /* ==============================================================================
-   TASK 3: OLED DISPLAY (Đã tối ưu)
+   TASK 3: OLED DISPLAY
    ============================================================================== */
 void vTask_Display_OLED(void *pvParam) {
     char buff[20];
@@ -99,7 +96,6 @@ void vTask_Display_OLED(void *pvParam) {
     ECU_OLED_UpdateScreen(&hOled);
 
     while(1) {
-        // [FIX 2] LỌC NHIỄU ADC: Chỉ vẽ khi thay đổi > 2 đơn vị
         if(g_rx_val != old_rx_val || abs((int)g_throttle_val - (int)old_throttle) > 2) {
             
             old_rx_val = g_rx_val;
@@ -107,28 +103,17 @@ void vTask_Display_OLED(void *pvParam) {
 
             ECU_OLED_Clear(&hOled);
             
-            // Vẽ thông số
-            sprintf(buff, "GAS:%d%% RAW:%d", g_throttle_val, g_debug_adc_raw);
+            // input GAS
+            sprintf(buff, "GAS:%d%% ", g_throttle_val);
             ECU_OLED_PrintString_F5x7(0, 0, buff);
             
-            // Đồng hồ
+            // clock
             ECU_OLED_DrawSpeedometer(g_rx_val);
-            
-            // Trạng thái
-            if(g_rx_val > 0) ECU_OLED_PrintString_F5x7(90, 20, "RX:OK");
-            else             ECU_OLED_PrintString_F5x7(90, 20, "WAIT...");
 
             ECU_OLED_UpdateScreen(&hOled);
         }
 
-        // [FIX 3] Giảm Delay xuống 20ms cho mượt (vì Driver mới đã nhanh rồi)
         vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
 
-void vTask_Blink_LED(void *pvParam){
-    while(1){
-        ECU_LED_Toggle(&hGreenLed);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-}

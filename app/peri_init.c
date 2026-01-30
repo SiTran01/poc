@@ -6,7 +6,7 @@ Servo_Handle_t hServo;
 OLED_Handle_t  hOled;
 CAN_Handle_t hCAN;
 CAN_Handle_t hCAN2;
-LED_Handle_t hGreenLed;
+//LED_Handle_t hGreenLed;
 
 void PERI_Init(void) {
     // 1. Init Pedal
@@ -49,5 +49,5 @@ void PERI_Init(void) {
                  CAN2_GPIO_AF);
 								 
 		//6. Init greenLed
-		ECU_LED_Init(&hGreenLed, GPIOD, 15);
+//		ECU_LED_Init(&hGreenLed, GPIOD, 15);
 }
